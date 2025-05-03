@@ -7,7 +7,7 @@ import re
 from .utils import *
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from .financial_features import (
+from .features import (
     detect_financial_tables, extract_table_structure, table_to_json,
     identify_regulatory_section, validate_regulatory_completeness,
     detect_footnote_references, extract_footnote_content, build_reference_graph,
