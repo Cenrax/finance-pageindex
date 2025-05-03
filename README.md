@@ -239,23 +239,128 @@ Contributions are welcome! Please check the development checklist for areas that
 
 ## Development Status Checklist
 
-- [x] Core document structure extraction
-- [x] Table of Contents processing
-- [x] Financial table detection and extraction
+# finance-pageindex Development Checklist
+
+## Core Document Analysis Functionality
+- [x] Document structure extraction
+- [x] Table of Contents (TOC) detection and processing
+- [x] Financial table recognition and extraction
 - [x] Regulatory section identification
-- [x] Footnote processing
+- [x] Footnote and reference processing
 - [x] Financial term extraction
 - [x] Structure verification and correction
 - [x] Section summarization
-- [ ] User-friendly command line interface
-- [ ] Web API for remote document processing
-- [ ] Performance optimization for large documents
-- [ ] Support for non-PDF document formats
-- [ ] Browser-based visualization of extracted structure
-- [ ] Export to multiple formats (JSON, CSV, Excel)
-- [ ] Batch processing capability
-- [ ] Improved error handling and reporting
-- [ ] Integration with financial analysis tools
-- [ ] Support for additional financial document types
-- [ ] Multilingual document support
-- [ ] Comprehensive test suite
+
+## 1. Financial Table Recognition and Extraction
+- [x] Basic table detection
+- [x] Simple table structure parsing
+- [x] Numerical data extraction
+- [x] Table-to-JSON conversion
+- [ ] Neural network model for financial table detection
+- [ ] PDF coordinate-based table boundary detection
+- [ ] Multi-page table detection
+- [ ] Advanced financial column type header recognition
+- [ ] Currency and units of measurement detection
+- [ ] Specialized extractors for financial figures
+- [ ] Parentheses detection for negative values
+- [ ] Financial table validation rules
+
+## 2. Regulatory Section Identification
+- [x] Basic section classification
+- [x] Regulatory completeness validation
+- [ ] Regulatory template database
+- [ ] Financial document corpus classifier
+- [ ] Neural text classification for ambiguous sections
+- [ ] Fuzzy matching for section titles with variations
+- [ ] Automatic suggestions for misclassified sections
+- [ ] Compliance gap reporting
+- [ ] Custom section handling
+- [ ] Content-based classification for unlabeled sections
+- [ ] Adaptive learning from previously processed documents
+
+## 3. Footnote and Reference Linking
+- [x] Reference marker detection
+- [x] Footnote content extraction
+- [x] Reference graph building
+- [ ] Superscript and special character detection
+- [ ] Reference continuity tracking
+- [ ] Pattern recognition for various footnote styles
+- [ ] Multi-page footnote section handling
+
+
+## 4. Formula and Calculation Verification
+- [ ] Mathematical expression parser
+- [ ] Summation relationship detection in tables
+- [ ] Calculation logic extraction from text
+- [ ] Symbolic math engine for financial calculations
+- [ ] Row and column sum validation
+- [ ] Cross-reference checking between tables
+- [ ] Rounding discrepancy detection
+- [ ] Anomaly detection for numerical outliers
+- [ ] Year-over-year variance analysis
+- [ ] Calculation tracing and dependency visualization
+
+## 5. Time-Series Data Extraction
+- [ ] Temporal pattern recognition
+- [ ] Date format and time period detection
+
+## 6. Financial Terminology Recognition
+- [x] Basic financial term extraction
+- [ ] Comprehensive financial domain vocabulary
+- [ ] Industry-specific terminology extensions
+- [ ] Acronym and abbreviation expansion
+- [ ] Specialized NER models for financial entities
+- [ ] Detection for companies, securities, and financial instruments
+- [ ] Domain-specific word embeddings for financial corpus
+- [ ] Context-based disambiguation for overloaded terms
+- [ ] Consistency validation for term usage
+
+## 7. Materiality Assessment
+- [ ] Quantitative materiality analysis
+- [ ] Financial threshold implementation for materiality
+- [ ] Percentage-based change detection
+- [ ] Industry-specific materiality benchmarks
+- [ ] Language analysis for material changes
+- [ ] Sentiment analysis for risk disclosures
+- [ ] Historical comparison with previous filings
+- [ ] Tracking of key metrics over time
+- [ ] Materiality summarization
+- [ ] Prioritization of material disclosures
+
+## 8. XBRL Integration
+- [ ] XBRL instance document parsing
+- [ ] Taxonomy handling for regulatory frameworks
+- [ ] Mapping between XBRL tags and document content
+- [ ] Extension taxonomy support
+- [ ] Validation between PDF content and XBRL data
+- [ ] Numerical consistency checking
+- [ ] XBRL-enhanced semantic search
+- [ ] Structured data generation
+
+
+
+## 9. Document Intelligence Features
+- [ ] Content similarity detection across documents
+- [ ] Language pattern analysis for risk disclosure
+- [ ] Forward-looking statement identification
+- [ ] Management tone analysis
+- [ ] Change detection in disclosure language
+- [ ] Information density measurement
+- [ ] Key message extraction
+- [ ] Disclosure quality assessment
+- [ ] Document complexity scoring
+- [ ] Board communication analysis
+
+## Document Processing Capabilities
+- [x] PDF processing (PyPDF2/PyMuPDF)
+- [ ] Complex document layout handling
+- [ ] Multi-column text processing
+- [ ] Table spanning multiple pages
+- [ ] Chart and graph recognition
+- [ ] Embedded image extraction and analysis
+- [ ] Document segmentation for parallel processing
+- [ ] Incremental document processing
+- [ ] Document type classification (10-K, 10-Q, etc.)
+- [ ] Handling of nested document structures
+
+
