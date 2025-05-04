@@ -7,7 +7,7 @@ import re
 from .utils import *
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from .features import (
+from .financial_features import (
     detect_financial_tables, extract_table_structure, table_to_json,
     identify_regulatory_section, validate_regulatory_completeness,
     detect_footnote_references, extract_footnote_content, build_reference_graph,
@@ -390,15 +390,22 @@ def remove_page_number(data):
 def extract_matching_page_pairs(toc_page, toc_physical_index, start_page_index):
     pairs = []
     for phy_item in toc_physical_index:
+        title = phy_item.get('title')
+        phys = phy_item.get('physical_index')
+        # Only proceed with numeric physical_index
+        try:
+            phys_int = int(phys)
+        except (ValueError, TypeError):
+            continue
+        if phys_int < start_page_index:
+            continue
         for page_item in toc_page:
-            if phy_item.get('title') == page_item.get('title'):
-                physical_index = phy_item.get('physical_index')
-                if physical_index is not None and int(physical_index) >= start_page_index:
-                    pairs.append({
-                        'title': phy_item.get('title'),
-                        'page': page_item.get('page'),
-                        'physical_index': physical_index
-                    })
+            if title == page_item.get('title'):
+                pairs.append({
+                    'title': title,
+                    'page': page_item.get('page'),
+                    'physical_index': phys_int
+                })
     return pairs
 
 
@@ -758,8 +765,22 @@ def single_toc_item_index_fixer(section_title, content, model="gpt-4o-2024-11-20
 
     prompt = tob_extractor_prompt + '\nSection Title:\n' + str(section_title) + '\nDocument pages:\n' + content
     response = ChatGPT_API(model=model, prompt=prompt)
-    json_content = extract_json(response)    
-    return convert_physical_index_to_int(json_content['physical_index'])
+    json_content = extract_json(response)
+    
+    # Handle case where physical_index might not be in expected format
+    try:
+        physical_index = json_content.get('physical_index', '')
+        if not physical_index or not isinstance(physical_index, str):
+            return None
+            
+        # Only proceed if it's in the expected format
+        if physical_index.startswith('<physical_index_'):
+            return convert_physical_index_to_int(physical_index)
+        else:
+            return None
+    except Exception as e:
+        print(f"Error processing physical index: {e}")
+        return None
 
 
 
@@ -1033,8 +1054,15 @@ async def tree_parser(page_list, opt, doc=None, logger=None):
             logger=logger)
 
     toc_with_page_number = add_preface_if_needed(toc_with_page_number)
-    toc_with_page_number = await check_title_appearance_in_start_concurrent(toc_with_page_number, page_list, model=opt.model, logger=logger)
+    toc_with_page_number = await check_title_appearance_in_start_concurrent(
+        toc_with_page_number, 
+        page_list, 
+        model=opt.model, 
+        logger=logger
+    )
+    
     toc_tree = post_processing(toc_with_page_number, len(page_list))
+    
     tasks = [
         process_large_node_recursively(node, page_list, opt, logger=logger)
         for node in toc_tree
@@ -1348,5 +1376,3 @@ async def process_financial_features_for_structure(structure, page_list, opt, lo
     # Start processing from the top level
     await process_nodes(structure)
     return structure
-
-    
