@@ -595,24 +595,52 @@ def add_node_text_with_labels(node, pdf_pages):
 
 
 async def generate_node_summary(node, model=None):
-    prompt = f"""You are given a part of a document, your task is to generate a description of the partial document about what are main points covered in the partial document.
-
-    Partial Document Text: {node['text']}
+    # Check if node has text field
+    if not isinstance(node, dict) or 'text' not in node or not node['text']:
+        return "No text available for summarization"
     
-    Directly return the description, do not include any other text.
-    """
-    response = await ChatGPT_API_async(model, prompt)
-    return response
+    try:
+        prompt = f"""You are given a part of a document, your task is to generate a description of the partial document about what are main points covered in the partial document.
+
+        Partial Document Text: {node['text']}
+        
+        Directly return the description, do not include any other text.
+        """
+        response = await ChatGPT_API_async(model, prompt)
+        return response
+    except Exception as e:
+        print(f"Error generating summary: {str(e)}")
+        return f"Summary generation failed: {str(e)}"
 
 
 async def generate_summaries_for_structure(structure, model=None):
-    nodes = structure_to_list(structure)
-    tasks = [generate_node_summary(node, model=model) for node in nodes]
-    summaries = await asyncio.gather(*tasks)
-    
-    for node, summary in zip(nodes, summaries):
-        node['summary'] = summary
-    return structure
+    try:
+        # Convert structure to flat list of nodes
+        nodes = structure_to_list(structure)
+        
+        # Skip nodes without text to avoid errors
+        valid_nodes = []
+        for node in nodes:
+            if isinstance(node, dict) and 'text' in node and node['text']:
+                valid_nodes.append(node)
+        
+        if not valid_nodes:
+            print("Warning: No valid nodes with text found for summarization")
+            return structure
+            
+        # Create tasks only for valid nodes
+        tasks = [generate_node_summary(node, model=model) for node in valid_nodes]
+        summaries = await asyncio.gather(*tasks)
+        
+        # Add summaries to nodes
+        for node, summary in zip(valid_nodes, summaries):
+            node['summary'] = summary
+            
+        return structure
+    except Exception as e:
+        print(f"Error in generate_summaries_for_structure: {str(e)}")
+        # Return the original structure without summaries rather than failing
+        return structure
 
 
 def generate_doc_description(structure, model=None):
