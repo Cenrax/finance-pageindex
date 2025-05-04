@@ -7,7 +7,7 @@ import re
 from .utils import *
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from .financial_features import (
+from .features import (
     detect_financial_tables, extract_table_structure, table_to_json,
     identify_regulatory_section, validate_regulatory_completeness,
     detect_footnote_references, extract_footnote_content, build_reference_graph,
@@ -1073,8 +1073,33 @@ async def tree_parser(page_list, opt, doc=None, logger=None):
 
 
 def page_index_main(doc, opt=None):
+    """
+    Unified entry point for document structure extraction with specialized
+    financial document processing.
+    
+    This function implements a streamlined workflow for processing financial documents,
+    particularly SEC 10-K filings, but works well with other document types too.
+    The processing pipeline includes:
+    
+    1. Document parsing and tokenization
+    2. Financial document detection and classification
+    3. Table of contents extraction and enhancement
+    4. Structure extraction with specialized financial features
+    5. Regulatory section identification and validation
+    6. Financial table extraction and analysis
+    7. Footnote processing and reference linking
+    8. Optional enrichment (summaries, IDs, text extraction)
+    
+    Args:
+        doc: PDF document (path or BytesIO)
+        opt: Processing options
+        
+    Returns:
+        Dictionary containing document structure and metadata
+    """
     logger = JsonLogger(doc)
     
+    # Validate input
     is_valid_pdf = (
         (isinstance(doc, str) and os.path.isfile(doc) and doc.lower().endswith(".pdf")) or 
         isinstance(doc, BytesIO)
@@ -1082,46 +1107,73 @@ def page_index_main(doc, opt=None):
     if not is_valid_pdf:
         raise ValueError("Unsupported input type. Expected a PDF file path or BytesIO object.")
 
-    print('Parsing PDF...')
+    logger.info("Starting unified financial document processing pipeline")
+    
+    # Step 1: Parse document into pages and tokens
+    print('Parsing PDF document...')
     page_list = get_page_tokens(doc)
 
-    logger.info({'total_page_number': len(page_list)})
-    logger.info({'total_token': sum([page[1] for page in page_list])})
+    # Log document statistics
+    total_pages = len(page_list)
+    total_tokens = sum([page[1] for page in page_list])
+    logger.info({'total_page_number': total_pages, 'total_token': total_tokens})
     
-    # Use single financial SEC 10K specialized parser
-    print('Processing as financial SEC 10K document...')
+    # Step 2: Process document through unified financial document parser
+    # This pipeline specializes in SEC 10-K documents but works for all document types
+    print(f'Processing document with specialized financial features ({total_pages} pages)...')
     structure = asyncio.run(financial_document_parser(page_list, opt, doc=doc, logger=logger))
     
+    # Step 3: Apply requested document enrichments
+    
     # Add node IDs if requested
-    if opt.if_add_node_id == 'yes':
+    if getattr(opt, 'if_add_node_id', 'yes') == 'yes':
+        print('Adding node IDs to structure...')
         write_node_id(structure)    
     
     # Add summaries if requested
-    if opt.if_add_node_summary == 'yes':
+    if getattr(opt, 'if_add_node_summary', 'yes') == 'yes':
+        print('Generating summaries for document sections...')
         add_node_text(structure, page_list)
         asyncio.run(generate_summaries_for_structure(structure, model=opt.model))
         remove_structure_text(structure)
         
         # Add node text with labels if requested
-        if opt.if_add_node_text == 'yes':
+        if getattr(opt, 'if_add_node_text', 'yes') == 'yes':
+            print('Adding labeled text to document sections...')
             add_node_text_with_labels(structure, page_list)
-        
-        # Add document description if requested
-        if opt.if_add_doc_description == 'yes':
-            doc_description = generate_doc_description(structure, model=opt.model)
-            return {
-                'doc_name': get_pdf_name(doc),
-                'doc_description': doc_description,
-                'is_financial_document': True,
-                'structure': structure,
-            }
     
-    # Return the final structure
-    return {
+    # Step 4: Create and return final document structure
+    
+    # Check for financial document indicators in the structure
+    is_financial_document = False
+    document_type = "Unknown"
+    financial_indicators = []
+    
+    # Extract financial metadata from structure if available
+    if structure and isinstance(structure, list) and len(structure) > 0:
+        # Check for financial metadata in the top node
+        top_node = structure[0]
+        if isinstance(top_node, dict) and top_node.get('metadata'):
+            metadata = top_node.get('metadata', {})
+            document_type = metadata.get('document_type', 'Unknown')
+            financial_indicators = metadata.get('financial_indicators', [])
+            is_financial_document = bool(document_type != 'Unknown' and document_type != 'Non-SEC Document')
+    
+    # Add document description if requested
+    result = {
         'doc_name': get_pdf_name(doc),
-        'is_financial_document': True,
+        'is_financial_document': is_financial_document,
+        'document_type': document_type,
         'structure': structure,
     }
+    
+    if getattr(opt, 'if_add_doc_description', 'yes') == 'yes':
+        print('Generating document description...')
+        doc_description = generate_doc_description(structure, model=opt.model)
+        result['doc_description'] = doc_description
+        
+    logger.info("Document processing complete")
+    return result
 
 
 def page_index(doc, model=None, toc_check_page_num=None, max_page_num_each_node=None, max_token_num_each_node=None,
@@ -1140,7 +1192,7 @@ def page_index(doc, model=None, toc_check_page_num=None, max_page_num_each_node=
 
 async def check_if_financial_document(page_list, model=None, logger=None):
     """
-    Check if the document is a financial document (SEC 10K).
+    Enhanced detection of financial documents (SEC 10K) with improved signal recognition.
     
     Args:
         page_list: List of pages with their content
@@ -1148,7 +1200,7 @@ async def check_if_financial_document(page_list, model=None, logger=None):
         logger: Logger instance
         
     Returns:
-        Boolean indicating if the document is a financial document
+        Dictionary with detection results and confidence score
     """
     # Check first few pages for indicators of a financial document
     sample_text = ""
@@ -1156,21 +1208,25 @@ async def check_if_financial_document(page_list, model=None, logger=None):
         sample_text += page_list[i][0] + "\n\n"
     
     prompt = f"""
-    You are a document classification expert. Your task is to determine if the given document is an SEC 10-K financial filing.
+    You are a document classification expert specialized in SEC filings. Your task is to determine if the given document is an SEC 10-K financial filing.
     
     Document sample:
     {sample_text}
     
     Please analyze the content and determine if this is an SEC 10-K filing. Look for:
-    1. Standard SEC filing language and headers
-    2. Financial terminology specific to annual reports
-    3. Section titles typical of 10-K filings
-    4. References to fiscal years, financial statements, etc.
+    1. Standard SEC filing language and headers (e.g., "FORM 10-K", "Annual Report", "Securities Exchange Act of 1934")
+    2. Financial terminology specific to annual reports (e.g., "Consolidated Statements", "Fiscal Year")
+    3. Section titles typical of 10-K filings (e.g., "Item 1. Business", "Item 1A. Risk Factors")
+    4. References to financial tables, financial statements, or accounting practices
+    5. Company-specific financial information and metrics
+    6. References to auditors, accounting standards, or SEC regulations
     
     Reply format:
     {{
         "is_financial_document": true/false,
         "confidence": 0.0-1.0,
+        "document_type": "10-K", "10-Q", "8-K", "Other SEC Filing", or "Non-SEC Document",
+        "financial_indicators": ["list of specific financial indicators found"],
         "reasoning": "brief explanation for your classification"
     }}
     Directly return the final JSON structure. Do not output anything else.
@@ -1182,11 +1238,18 @@ async def check_if_financial_document(page_list, model=None, logger=None):
     if logger:
         logger.info(f"Financial document detection: {result}")
     
-    return result.get("is_financial_document", False)
+    return result
 
 async def financial_document_parser(page_list, opt, doc=None, logger=None):
     """
-    Parse a financial document (SEC 10K) with specialized features.
+    Unified parser for financial documents (SEC 10K) with specialized features.
+    
+    This function implements a streamlined workflow optimized for financial documents:
+    1. Detects financial document features and structure
+    2. Extracts TOC with specialized financial section recognition
+    3. Processes financial tables, footnotes, and regulatory sections
+    4. Validates document completeness according to SEC requirements
+    5. Builds a comprehensive tree structure with financial metadata
     
     Args:
         page_list: List of pages with their content
@@ -1198,28 +1261,45 @@ async def financial_document_parser(page_list, opt, doc=None, logger=None):
         Enhanced document structure with financial-specific features
     """
     if logger:
-        logger.info("Starting financial document parsing")
+        logger.info("Starting unified financial document parsing")
     
-    # First, use the standard TOC detection approach
+    # Step 1: Perform enhanced financial document detection
+    financial_detection = await check_if_financial_document(page_list, model=opt.model, logger=logger)
+    is_financial = financial_detection.get("is_financial_document", False)
+    doc_type = financial_detection.get("document_type", "Unknown")
+    
+    if logger:
+        logger.info(f"Document classified as: {doc_type} with confidence {financial_detection.get('confidence', 0)}")
+    
+    # Step 2: Extract and enhance table of contents
     check_toc_result = check_toc(page_list, opt)
-    logger.info(check_toc_result)
+    if logger:
+        logger.info(f"TOC detection: {check_toc_result['page_index_given_in_toc']}")
     
-    # Process TOC with financial document enhancements if available
+    # Process based on document characteristics
     if check_toc_result.get("toc_content") and check_toc_result["toc_content"].strip():
-        # Enhance TOC for financial document
-        enhanced_toc = await enhance_toc_for_financial_document(
-            check_toc_result["toc_content"], 
-            model=opt.model
-        )
-        logger.info({"enhanced_toc": enhanced_toc})
+        # For financial documents, enhance the TOC with financial section recognition
+        if is_financial:
+            enhanced_toc = await enhance_toc_for_financial_document(
+                check_toc_result["toc_content"],
+                model=opt.model
+            )
+            if logger:
+                logger.info(f"Enhanced TOC with {len(enhanced_toc.get('enhanced_toc', []))} sections")
+                logger.info(f"Identified {len(enhanced_toc.get('missing_sections', []))} missing sections")
+            
+            # Use the enhanced TOC content if available
+            toc_content = check_toc_result["toc_content"]
+        else:
+            toc_content = check_toc_result["toc_content"]
         
-        # Process with page numbers if available
+        # Process with appropriate method based on whether page numbers are present
         if check_toc_result["page_index_given_in_toc"] == "yes":
             toc_with_page_number = await meta_processor(
                 page_list, 
                 mode='process_toc_with_page_numbers', 
                 start_index=1, 
-                toc_content=check_toc_result['toc_content'], 
+                toc_content=toc_content, 
                 toc_page_list=check_toc_result['toc_page_list'], 
                 opt=opt,
                 logger=logger
@@ -1229,13 +1309,13 @@ async def financial_document_parser(page_list, opt, doc=None, logger=None):
                 page_list, 
                 mode='process_toc_no_page_numbers', 
                 start_index=1, 
-                toc_content=check_toc_result['toc_content'], 
+                toc_content=toc_content, 
                 toc_page_list=check_toc_result['toc_page_list'], 
                 opt=opt,
                 logger=logger
             )
     else:
-        # Fall back to no-TOC processing
+        # No TOC found, use direct structure extraction approach
         toc_with_page_number = await meta_processor(
             page_list, 
             mode='process_no_toc', 
@@ -1244,7 +1324,7 @@ async def financial_document_parser(page_list, opt, doc=None, logger=None):
             logger=logger
         )
     
-    # Add preface if needed and process start appearances
+    # Step 3: Post-process and enhance the structure
     toc_with_page_number = add_preface_if_needed(toc_with_page_number)
     toc_with_page_number = await check_title_appearance_in_start_concurrent(
         toc_with_page_number, 
@@ -1253,28 +1333,40 @@ async def financial_document_parser(page_list, opt, doc=None, logger=None):
         logger=logger
     )
     
-    # Create the tree structure
+    # Step 4: Transform into a tree structure
     toc_tree = post_processing(toc_with_page_number, len(page_list))
     
-    # Process large nodes recursively
+    # Step 5: Process large nodes recursively
     tasks = [
         process_large_node_recursively(node, page_list, opt, logger=logger)
         for node in toc_tree
     ]
     await asyncio.gather(*tasks)
     
-    # Process financial features if enabled
-    if getattr(opt, 'process_financial_features', 'yes') == 'yes':
+    # Step 6: Process financial-specific features
+    # Always process financial features for identified financial documents
+    if is_financial or getattr(opt, 'process_financial_features', 'yes') == 'yes':
+        if logger:
+            logger.info("Processing financial features for document structure")
+        
+        # Add document-level financial metadata
+        for node in toc_tree:
+            if 'metadata' not in node:
+                node['metadata'] = {}
+            node['metadata']['document_type'] = doc_type
+            node['metadata']['financial_indicators'] = financial_detection.get('financial_indicators', [])
+        
         # Process financial features for each section
         await process_financial_features_for_structure(toc_tree, page_list, opt, logger)
         
-        # Validate regulatory completeness
+        # Validate regulatory completeness against SEC requirements
         if logger:
             logger.info("Validating regulatory completeness")
         completeness_result = await validate_regulatory_completeness(toc_tree, model=opt.model)
-        logger.info({"regulatory_completeness": completeness_result})
+        if logger:
+            logger.info(f"Regulatory validation: {completeness_result.get('completeness_score', 0)}")
         
-        # Add completeness information to the structure
+        # Add completeness information to the top-level structure
         for node in toc_tree:
             if 'metadata' not in node:
                 node['metadata'] = {}
@@ -1284,54 +1376,125 @@ async def financial_document_parser(page_list, opt, doc=None, logger=None):
 
 async def process_financial_features_for_structure(structure, page_list, opt, logger=None):
     """
-    Process financial features for each section in the structure.
+    Enhanced processor for financial features in document sections.
+    
+    This function extracts and processes specialized financial information from each section:
+    1. Identifies regulatory sections (e.g., Item 1, Item 1A) per SEC requirements
+    2. Extracts and structures financial tables (balance sheets, income statements)
+    3. Processes footnotes and builds reference graphs between sections
+    4. Identifies financial terms and their definitions
+    5. Adds comprehensive financial metadata to each node
     
     Args:
-        structure: Document structure
+        structure: Document structure tree
         page_list: List of pages with their content
         opt: Options for processing
         logger: Logger instance
         
     Returns:
-        Enhanced structure with financial features
+        Enhanced structure with financial features and metadata
     """
+    if logger:
+        logger.info("Processing financial features for document structure")
+    
+    # Track overall financial metrics at document level
+    document_metrics = {
+        'total_tables': 0,
+        'total_footnotes': 0,
+        'regulatory_sections': [],
+        'key_financial_terms': {},
+        'financial_years': set()
+    }
+    
     async def process_node(node):
-        if isinstance(node, dict):
-            # Get page range for this node
-            start_page = node.get('start_index', 1)
-            end_page = node.get('end_index', start_page + 1)
+        if not isinstance(node, dict):
+            return
             
-            # Extract text for this section
-            section_pages = page_list[start_page-1:end_page-1]
-            section_text = "\n\n".join([page[0] for page in section_pages])
+        # Get page range for this node
+        start_page = node.get('start_index', 1)
+        end_page = node.get('end_index', start_page + 1)
+        
+        # Extract text for this section
+        section_pages = page_list[max(0, start_page-1):max(0, end_page-1)]
+        if not section_pages:
+            if logger:
+                logger.warning(f"No pages found for section {node.get('title', 'Untitled')} - range: {start_page}-{end_page}")
+            return
             
-            # Initialize metadata if not present
-            if 'metadata' not in node:
-                node['metadata'] = {}
+        section_text = "\n\n".join([page[0] for page in section_pages])
+        
+        # Initialize metadata if not present
+        if 'metadata' not in node:
+            node['metadata'] = {}
+        
+        # Add section size metadata
+        node['metadata']['section_stats'] = {
+            'page_count': end_page - start_page,
+            'text_length': len(section_text),
+            'estimated_tokens': sum([page[1] for page in section_pages]) if all(len(page) > 1 for page in section_pages) else None
+        }
+        
+        # Step 1: Identify if this is a regulatory section
+        section_title = node.get('title', '').strip()
+        if logger:
+            logger.info(f"Processing section: {section_title}")
             
-            # Identify if this is a regulatory section
-            regulatory_info = await identify_regulatory_section(
-                node.get('title', ''), 
-                section_text, 
-                model=opt.model
-            )
-            node['metadata']['regulatory_info'] = regulatory_info
+        regulatory_info = await identify_regulatory_section(
+            section_title, 
+            section_text, 
+            model=opt.model
+        )
+        node['metadata']['regulatory_info'] = regulatory_info
+        
+        # Track regulatory sections at document level
+        if regulatory_info.get('is_regulatory_section', False):
+            document_metrics['regulatory_sections'].append({
+                'title': section_title,
+                'type': regulatory_info.get('section_type'),
+                'id': regulatory_info.get('section_id')
+            })
+        
+        # Step 2: Process financial tables based on section type
+        # Prioritize processing for financial statement sections
+        is_financial_statement = any(term in section_title.lower() for term in [
+            'balance sheet', 'income statement', 'statement of operations',
+            'cash flow', 'financial statement', 'statement of position',
+            'consolidated', 'statements', 'notes', 'financial data'
+        ])
+        
+        priority_processing = regulatory_info.get('is_regulatory_section', False) or is_financial_statement
+        
+        # Process tables with different strategies based on section type
+        if getattr(opt, 'extract_tables', 'yes') == 'yes':
+            if priority_processing:
+                if logger:
+                    logger.info(f"Priority table processing for section: {section_title}")
             
-            # Process tables if enabled
-            if getattr(opt, 'extract_tables', 'yes') == 'yes':
-                tables_detected = await detect_financial_tables(section_text, model=opt.model)
-                if tables_detected.get('tables_detected', False):
-                    node['metadata']['tables'] = []
-                    for table_info in tables_detected.get('tables', []):
-                        # Extract table text based on positions
+            tables_detected = await detect_financial_tables(section_text, model=opt.model)
+            
+            if tables_detected.get('tables_detected', False):
+                node['metadata']['tables'] = []
+                document_metrics['total_tables'] += len(tables_detected.get('tables', []))
+                
+                for table_info in tables_detected.get('tables', []):
+                    # Extract table text based on positions
+                    try:
                         start_pos = int(table_info.get('start_position', 0))
-                        end_pos = int(table_info.get('end_position', len(section_text)))
+                        end_pos = min(int(table_info.get('end_position', len(section_text))), len(section_text))
                         table_text = section_text[start_pos:end_pos]
+                        
+                        # Parse table structure with appropriate model based on importance
+                        table_type = table_info.get('table_type', 'unknown')
+                        
+                        # Detect fiscal years in table (important for financial analysis)
+                        years = re.findall(r'\b(20\d\d|19\d\d)\b', table_text)
+                        if years:
+                            document_metrics['financial_years'].update(years)
                         
                         # Parse table structure
                         table_structure = await extract_table_structure(
                             table_text, 
-                            table_info.get('table_type', 'unknown'), 
+                            table_type, 
                             model=opt.model
                         )
                         
@@ -1340,34 +1503,48 @@ async def process_financial_features_for_structure(structure, page_list, opt, lo
                         
                         # Add to node metadata
                         node['metadata']['tables'].append({
-                            'type': table_info.get('table_type', 'unknown'),
-                            'structure': table_json
+                            'type': table_type,
+                            'structure': table_json,
+                            'multi_page': table_info.get('multi_page', False),
+                            'confidence': table_info.get('confidence', 1.0),
+                            'years_mentioned': list(set(years))
                         })
+                    except Exception as e:
+                        if logger:
+                            logger.error(f"Error processing table: {str(e)}")
+        
+        # Step 3: Process footnotes with reference tracking
+        if getattr(opt, 'extract_footnotes', 'yes') == 'yes':
+            footnote_refs = await detect_footnote_references(section_text, model=opt.model)
+            footnote_contents = await extract_footnote_content(section_text, model=opt.model)
             
-            # Process footnotes if enabled
-            if getattr(opt, 'extract_footnotes', 'yes') == 'yes':
-                footnote_refs = await detect_footnote_references(section_text, model=opt.model)
-                footnote_contents = await extract_footnote_content(section_text, model=opt.model)
+            if footnote_refs.get('footnote_references', []) and footnote_contents.get('footnotes', []):
+                document_metrics['total_footnotes'] += len(footnote_contents.get('footnotes', []))
                 
-                if footnote_refs.get('footnote_references', []) and footnote_contents.get('footnotes', []):
-                    reference_graph = await build_reference_graph(
-                        footnote_refs, 
-                        footnote_contents, 
-                        model=opt.model
-                    )
-                    node['metadata']['footnotes'] = {
-                        'references': footnote_refs.get('footnote_references', []),
-                        'contents': footnote_contents.get('footnotes', []),
-                        'graph': reference_graph.get('reference_graph', [])
-                    }
-            
-            # Extract financial terms
-            financial_terms = await extract_financial_terms(section_text, model=opt.model)
-            node['metadata']['financial_terms'] = financial_terms.get('financial_terms', [])
-            
-            # Process child nodes recursively
-            if 'nodes' in node and node['nodes']:
-                await process_nodes(node['nodes'])
+                reference_graph = await build_reference_graph(
+                    footnote_refs, 
+                    footnote_contents, 
+                    model=opt.model
+                )
+                node['metadata']['footnotes'] = {
+                    'references': footnote_refs.get('footnote_references', []),
+                    'contents': footnote_contents.get('footnotes', []),
+                    'graph': reference_graph.get('reference_graph', [])
+                }
+        
+        # Step 4: Extract financial terms with stronger financial domain focus
+        financial_terms = await extract_financial_terms(section_text, model=opt.model)
+        node['metadata']['financial_terms'] = financial_terms.get('financial_terms', [])
+        
+        # Update document-level financial terms dictionary
+        for term in financial_terms.get('financial_terms', []):
+            term_name = term.get('term')
+            if term_name and term.get('is_explicit_definition', False):
+                document_metrics['key_financial_terms'][term_name] = term.get('definition')
+        
+        # Process child nodes recursively
+        if 'nodes' in node and node['nodes']:
+            await process_nodes(node['nodes'])
     
     async def process_nodes(nodes):
         tasks = [process_node(node) for node in nodes]
@@ -1375,4 +1552,21 @@ async def process_financial_features_for_structure(structure, page_list, opt, lo
     
     # Start processing from the top level
     await process_nodes(structure)
+    
+    # Add document-level metrics to the top nodes
+    for node in structure:
+        if 'metadata' not in node:
+            node['metadata'] = {}
+        
+        node['metadata']['document_financial_metrics'] = {
+            'total_tables': document_metrics['total_tables'],
+            'total_footnotes': document_metrics['total_footnotes'],
+            'regulatory_sections_count': len(document_metrics['regulatory_sections']),
+            'financial_years': list(document_metrics['financial_years']),
+            'financial_terms_count': len(document_metrics['key_financial_terms'])
+        }
+    
+    if logger:
+        logger.info(f"Processed {document_metrics['total_tables']} financial tables and {document_metrics['total_footnotes']} footnotes")
+    
     return structure
