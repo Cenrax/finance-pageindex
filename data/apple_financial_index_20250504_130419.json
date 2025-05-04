@@ -1,0 +1,610 @@
+{
+  "doc_name": "apple.pdf",
+  "is_financial_document": true,
+  "document_type": "10-Q",
+  "structure": [
+    {
+      "title": "Preface",
+      "start_index": 1,
+      "end_index": 4,
+      "metadata": {
+        "document_type": "10-Q",
+        "financial_indicators": [
+          "Quarterly Report",
+          "Condensed Consolidated Statements of Operations",
+          "Net sales",
+          "Operating income",
+          "Earnings per share"
+        ],
+        "section_stats": {
+          "page_count": 3,
+          "text_length": 3630,
+          "estimated_tokens": 941
+        },
+        "regulatory_info": {
+          "is_regulatory": true,
+          "section_type": "Form 10-Q Preface",
+          "standard_title": "Preface",
+          "confidence": 1.0,
+          "reasoning": "The section provided is a standard preface for a Form 10-Q filing, which is a required quarterly report under the Securities Exchange Act of 1934. It includes essential information such as the filing type, period, and registrant details, which are typical components of SEC filings."
+        },
+        "financial_terms": [
+          {
+            "term": "Form 10-Q",
+            "definition": "Quarterly report pursuant to Section 13 or 15(d) of the Securities Exchange Act of 1934.",
+            "context": "QUARTERLY REPORT PURSUANT TO SECTION 13 OR 15(d) OF THE SECURITIES EXCHANGE ACT OF 1934",
+            "is_explicit_definition": true
+          },
+          {
+            "term": "Securities Exchange Act of 1934",
+            "definition": "A federal law governing the trading of securities in the United States.",
+            "context": "PURSUANT TO SECTION 13 OR 15(d) OF THE SECURITIES EXCHANGE ACT OF 1934",
+            "is_explicit_definition": false
+          },
+          {
+            "term": "Common Stock",
+            "definition": "A type of security that represents ownership in a corporation and a claim on a portion of the company’s assets and earnings.",
+            "context": "Common Stock, $0.00001 par value per share",
+            "is_explicit_definition": false
+          },
+          {
+            "term": "par value",
+            "definition": "The nominal or face value of a security stated by the issuer.",
+            "context": "Common Stock, $0.00001 par value per share",
+            "is_explicit_definition": false
+          },
+          {
+            "term": "Notes",
+            "definition": "Debt securities issued by a company to raise capital, with a promise to pay back the principal along with interest.",
+            "context": "0.000% Notes due 2025, 0.875% Notes due 2025, etc.",
+            "is_explicit_definition": false
+          },
+          {
+            "term": "I.R.S. Employer Identification No.",
+            "definition": "A unique number assigned by the Internal Revenue Service to identify a business entity.",
+            "context": "(I.R.S. Employer Identification No.)",
+            "is_explicit_definition": true
+          },
+          {
+            "term": "large accelerated filer",
+            "definition": "A company that meets specific criteria set by the SEC, including having a public float of $700 million or more.",
+            "context": "Indicate by check mark whether the Registrant is a large accelerated filer...",
+            "is_explicit_definition": true
+          },
+          {
+            "term": "accelerated filer",
+            "definition": "A company that meets certain criteria set by the SEC, including having a public float of $75 million or more but less than $700 million.",
+            "context": "Indicate by check mark whether the Registrant is an accelerated filer...",
+            "is_explicit_definition": true
+          },
+          {
+            "term": "non-accelerated filer",
+            "definition": "A company that does not meet the criteria to be classified as an accelerated or large accelerated filer.",
+            "context": "Indicate by check mark whether the Registrant is a non-accelerated filer...",
+            "is_explicit_definition": true
+          },
+          {
+            "term": "smaller reporting company",
+            "definition": "A company that meets specific criteria set by the SEC, typically having a public float of less than $250 million.",
+            "context": "Indicate by check mark whether the Registrant is a smaller reporting company...",
+            "is_explicit_definition": true
+          },
+          {
+            "term": "emerging growth company",
+            "definition": "A company with total annual gross revenues of less than $1.07 billion during its most recent fiscal year.",
+            "context": "Indicate by check mark whether the Registrant is an emerging growth company...",
+            "is_explicit_definition": true
+          },
+          {
+            "term": "shell company",
+            "definition": "A company that has no significant assets or operations and is often used for financial maneuvers.",
+            "context": "Indicate by check mark whether the Registrant is a shell company...",
+            "is_explicit_definition": true
+          },
+          {
+            "term": "shares of common stock",
+            "definition": "Units of ownership in a corporation that provide shareholders with voting rights and dividends.",
+            "context": "14,935,826,000 shares of common stock were issued and outstanding...",
+            "is_explicit_definition": false
+          }
+        ],
+        "document_financial_metrics": {
+          "total_tables": 0,
+          "total_footnotes": 0,
+          "regulatory_sections_count": 0,
+          "financial_years": [],
+          "financial_terms_count": 8
+        },
+        "regulatory_validation": {
+          "is_complete": false,
+          "missing_sections": [
+            "Item 1. Business",
+            "Item 7. Management's Discussion and Analysis of Financial Condition and Results of Operations",
+            "Item 8. Financial Statements and Supplementary Data"
+          ],
+          "misclassified_sections": [],
+          "compliance_score": 0.75
+        }
+      },
+      "node_id": "0000"
+    },
+    {
+      "title": "Part I",
+      "start_index": 4,
+      "end_index": 4,
+      "nodes": [
+        {
+          "title": "Item 1. Financial Statements",
+          "start_index": 4,
+          "end_index": 4,
+          "nodes": [
+            {
+              "title": "PART I — FINANCIAL INFORMATION",
+              "start_index": 4,
+              "end_index": 4,
+              "nodes": [
+                {
+                  "title": "Item 1. Financial Statements",
+                  "start_index": 4,
+                  "end_index": 4,
+                  "nodes": [
+                    {
+                      "title": "CONDENSED CONSOLIDATED STATEMENTS OF OPERATIONS (Unaudited)",
+                      "start_index": 4,
+                      "end_index": 5,
+                      "node_id": "0005"
+                    },
+                    {
+                      "title": "CONDENSED CONSOLIDATED STATEMENTS OF COMPREHENSIVE INCOME (Unaudited)",
+                      "start_index": 5,
+                      "end_index": 6,
+                      "node_id": "0006"
+                    },
+                    {
+                      "title": "CONDENSED CONSOLIDATED BALANCE SHEETS (Unaudited)",
+                      "start_index": 6,
+                      "end_index": 7,
+                      "node_id": "0007"
+                    },
+                    {
+                      "title": "CONDENSED CONSOLIDATED STATEMENTS OF SHAREHOLDERS’ EQUITY (Unaudited)",
+                      "start_index": 7,
+                      "end_index": 8,
+                      "node_id": "0008"
+                    },
+                    {
+                      "title": "CONDENSED CONSOLIDATED STATEMENTS OF CASH FLOWS (Unaudited)",
+                      "start_index": 8,
+                      "end_index": 8,
+                      "node_id": "0009"
+                    }
+                  ],
+                  "node_id": "0004"
+                },
+                {
+                  "title": "Notes to Condensed Consolidated Financial Statements (Unaudited)",
+                  "start_index": 9,
+                  "end_index": 9,
+                  "nodes": [
+                    {
+                      "title": "Note 1 – Summary of Significant Accounting Policies",
+                      "start_index": 9,
+                      "end_index": 9,
+                      "node_id": "0011"
+                    },
+                    {
+                      "title": "Note 2 – Revenue",
+                      "start_index": 9,
+                      "end_index": 9,
+                      "node_id": "0012"
+                    },
+                    {
+                      "title": "Note 3 – Earnings Per Share",
+                      "start_index": 10,
+                      "end_index": 10,
+                      "node_id": "0013"
+                    },
+                    {
+                      "title": "Note 4 – Financial Instruments",
+                      "start_index": 10,
+                      "end_index": 12,
+                      "node_id": "0014"
+                    },
+                    {
+                      "title": "Note 5 – Condensed Consolidated Financial Statement Details",
+                      "start_index": 12,
+                      "end_index": 12,
+                      "node_id": "0015"
+                    },
+                    {
+                      "title": "Note 6 – Debt",
+                      "start_index": 13,
+                      "end_index": 13,
+                      "node_id": "0016"
+                    },
+                    {
+                      "title": "Note 7 – Shareholders’ Equity",
+                      "start_index": 13,
+                      "end_index": 13,
+                      "node_id": "0017"
+                    },
+                    {
+                      "title": "Note 8 – Share-Based Compensation",
+                      "start_index": 13,
+                      "end_index": 13,
+                      "node_id": "0018"
+                    },
+                    {
+                      "title": "Note 9 – Contingencies",
+                      "start_index": 14,
+                      "end_index": 14,
+                      "node_id": "0019"
+                    },
+                    {
+                      "title": "Note 10 – Segment Information and Geographic Data",
+                      "start_index": 14,
+                      "end_index": 14,
+                      "node_id": "0020"
+                    }
+                  ],
+                  "node_id": "0010"
+                }
+              ],
+              "node_id": "0003"
+            },
+            {
+              "title": "Item 2. Management’s Discussion and Analysis of Financial Condition and Results of Operations",
+              "start_index": 15,
+              "end_index": 15,
+              "node_id": "0021"
+            }
+          ],
+          "node_id": "0002"
+        },
+        {
+          "title": "Item 2. Management’s Discussion and Analysis of Financial Condition and Results of Operations",
+          "start_index": 15,
+          "end_index": 15,
+          "nodes": [
+            {
+              "title": "Available Information",
+              "start_index": 15,
+              "end_index": 15,
+              "node_id": "0023"
+            },
+            {
+              "title": "Business Seasonality and Product Introductions",
+              "start_index": 15,
+              "end_index": 15,
+              "node_id": "0024"
+            },
+            {
+              "title": "Macroeconomic Conditions",
+              "start_index": 15,
+              "end_index": 15,
+              "node_id": "0025"
+            },
+            {
+              "title": "Tariffs and Other Trade Measures",
+              "start_index": 16,
+              "end_index": 16,
+              "node_id": "0026"
+            },
+            {
+              "title": "Segment Operating Performance",
+              "start_index": 16,
+              "end_index": 16,
+              "nodes": [
+                {
+                  "title": "Americas",
+                  "start_index": 16,
+                  "end_index": 16,
+                  "node_id": "0028"
+                },
+                {
+                  "title": "Europe",
+                  "start_index": 16,
+                  "end_index": 16,
+                  "node_id": "0029"
+                },
+                {
+                  "title": "Greater China",
+                  "start_index": 16,
+                  "end_index": 16,
+                  "node_id": "0030"
+                },
+                {
+                  "title": "Japan",
+                  "start_index": 16,
+                  "end_index": 16,
+                  "node_id": "0031"
+                },
+                {
+                  "title": "Rest of Asia Pacific",
+                  "start_index": 16,
+                  "end_index": 17,
+                  "node_id": "0032"
+                }
+              ],
+              "node_id": "0027"
+            },
+            {
+              "title": "Products and Services Performance",
+              "start_index": 17,
+              "end_index": 17,
+              "nodes": [
+                {
+                  "title": "iPhone",
+                  "start_index": 17,
+                  "end_index": 17,
+                  "node_id": "0034"
+                },
+                {
+                  "title": "Mac",
+                  "start_index": 17,
+                  "end_index": 17,
+                  "node_id": "0035"
+                },
+                {
+                  "title": "iPad",
+                  "start_index": 17,
+                  "end_index": 17,
+                  "node_id": "0036"
+                },
+                {
+                  "title": "Wearables, Home and Accessories",
+                  "start_index": 17,
+                  "end_index": 17,
+                  "node_id": "0037"
+                },
+                {
+                  "title": "Services",
+                  "start_index": 17,
+                  "end_index": 17,
+                  "node_id": "0038"
+                }
+              ],
+              "node_id": "0033"
+            },
+            {
+              "title": "Gross Margin",
+              "start_index": 18,
+              "end_index": 18,
+              "node_id": "0039"
+            },
+            {
+              "title": "Operating Expenses",
+              "start_index": 19,
+              "end_index": 19,
+              "nodes": [
+                {
+                  "title": "Research and Development",
+                  "start_index": 19,
+                  "end_index": 19,
+                  "node_id": "0041"
+                },
+                {
+                  "title": "Selling, General and Administrative",
+                  "start_index": 19,
+                  "end_index": 19,
+                  "node_id": "0042"
+                }
+              ],
+              "node_id": "0040"
+            },
+            {
+              "title": "Provision for Income Taxes",
+              "start_index": 19,
+              "end_index": 19,
+              "node_id": "0043"
+            },
+            {
+              "title": "Liquidity and Capital Resources",
+              "start_index": 20,
+              "end_index": 20,
+              "nodes": [
+                {
+                  "title": "Manufacturing Purchase Obligations",
+                  "start_index": 20,
+                  "end_index": 20,
+                  "node_id": "0045"
+                },
+                {
+                  "title": "State Aid Decision Tax Payable",
+                  "start_index": 20,
+                  "end_index": 20,
+                  "node_id": "0046"
+                },
+                {
+                  "title": "Capital Return Program",
+                  "start_index": 20,
+                  "end_index": 20,
+                  "node_id": "0047"
+                }
+              ],
+              "node_id": "0044"
+            },
+            {
+              "title": "Recent Accounting Pronouncements",
+              "start_index": 20,
+              "end_index": 20,
+              "nodes": [
+                {
+                  "title": "Disaggregation of Income Statement Expenses",
+                  "start_index": 20,
+                  "end_index": 20,
+                  "node_id": "0049"
+                },
+                {
+                  "title": "Income Taxes",
+                  "start_index": 20,
+                  "end_index": 20,
+                  "node_id": "0050"
+                }
+              ],
+              "node_id": "0048"
+            },
+            {
+              "title": "Segment Reporting",
+              "start_index": 21,
+              "end_index": 21,
+              "node_id": "0051"
+            },
+            {
+              "title": "Critical Accounting Estimates",
+              "start_index": 21,
+              "end_index": 21,
+              "node_id": "0052"
+            },
+            {
+              "title": "Item 3. Quantitative and Qualitative Disclosures About Market Risk",
+              "start_index": 21,
+              "end_index": 21,
+              "node_id": "0053"
+            },
+            {
+              "title": "Item 4. Controls and Procedures",
+              "start_index": 21,
+              "end_index": 21,
+              "nodes": [
+                {
+                  "title": "Evaluation of Disclosure Controls and Procedures",
+                  "start_index": 21,
+                  "end_index": 21,
+                  "node_id": "0055"
+                },
+                {
+                  "title": "Changes in Internal Control over Financial Reporting",
+                  "start_index": 21,
+                  "end_index": 21,
+                  "node_id": "0056"
+                }
+              ],
+              "node_id": "0054"
+            }
+          ],
+          "node_id": "0022"
+        },
+        {
+          "title": "Item 3. Quantitative and Qualitative Disclosures About Market Risk",
+          "start_index": 21,
+          "end_index": 21,
+          "node_id": "0057"
+        },
+        {
+          "title": "Item 4. Controls and Procedures",
+          "start_index": 21,
+          "end_index": 21,
+          "node_id": "0058"
+        }
+      ],
+      "metadata": {
+        "document_type": "10-Q",
+        "financial_indicators": [
+          "Quarterly Report",
+          "Condensed Consolidated Statements of Operations",
+          "Net sales",
+          "Operating income",
+          "Earnings per share"
+        ],
+        "document_financial_metrics": {
+          "total_tables": 0,
+          "total_footnotes": 0,
+          "regulatory_sections_count": 0,
+          "financial_years": [],
+          "financial_terms_count": 8
+        },
+        "regulatory_validation": {
+          "is_complete": false,
+          "missing_sections": [
+            "Item 1. Business",
+            "Item 7. Management's Discussion and Analysis of Financial Condition and Results of Operations",
+            "Item 8. Financial Statements and Supplementary Data"
+          ],
+          "misclassified_sections": [],
+          "compliance_score": 0.75
+        }
+      },
+      "node_id": "0001"
+    },
+    {
+      "title": "Part II",
+      "start_index": 22,
+      "end_index": 22,
+      "nodes": [
+        {
+          "title": "Item 1. Legal Proceedings",
+          "start_index": 22,
+          "end_index": 22,
+          "node_id": "0060"
+        },
+        {
+          "title": "Item 1A. Risk Factors",
+          "start_index": 23,
+          "end_index": 24,
+          "node_id": "0061"
+        },
+        {
+          "title": "Item 2. Unregistered Sales of Equity Securities and Use of Proceeds",
+          "start_index": 25,
+          "end_index": 25,
+          "node_id": "0062"
+        },
+        {
+          "title": "Item 3. Defaults Upon Senior Securities",
+          "start_index": 25,
+          "end_index": 25,
+          "node_id": "0063"
+        },
+        {
+          "title": "Item 4. Mine Safety Disclosures",
+          "start_index": 25,
+          "end_index": 25,
+          "node_id": "0064"
+        },
+        {
+          "title": "Item 5. Other Information",
+          "start_index": 25,
+          "end_index": 25,
+          "node_id": "0065"
+        },
+        {
+          "title": "Item 6. Exhibits",
+          "start_index": 25,
+          "end_index": 29,
+          "node_id": "0066"
+        }
+      ],
+      "metadata": {
+        "document_type": "10-Q",
+        "financial_indicators": [
+          "Quarterly Report",
+          "Condensed Consolidated Statements of Operations",
+          "Net sales",
+          "Operating income",
+          "Earnings per share"
+        ],
+        "document_financial_metrics": {
+          "total_tables": 0,
+          "total_footnotes": 0,
+          "regulatory_sections_count": 0,
+          "financial_years": [],
+          "financial_terms_count": 8
+        },
+        "regulatory_validation": {
+          "is_complete": false,
+          "missing_sections": [
+            "Item 1. Business",
+            "Item 7. Management's Discussion and Analysis of Financial Condition and Results of Operations",
+            "Item 8. Financial Statements and Supplementary Data"
+          ],
+          "misclassified_sections": [],
+          "compliance_score": 0.75
+        }
+      },
+      "node_id": "0059"
+    }
+  ],
+  "processing_stage": "node_ids_added",
+  "checkpoint_path": "checkpoints/apple_checkpoint_20250504_130419.pkl"
+}
