@@ -17,128 +17,388 @@ https://github.com/Cenrax/finance-pageindex
 
 ## Architecture Diagram
 
+## High-Level Architecture Diagram (HLD)
+
 ```mermaid
-flowchart TB
-    subgraph Client["Client Interface"]
-        UI["User Interface"]
-        API["API"]
+flowchart TD
+    subgraph "User Interface"
+        CLI[Command Line Interface]-->Args[Argument Parser]
     end
 
-    subgraph Core["Core Processing"]
-        page_index_main["page_index_main()"]
-        financial_document_parser["financial_document_parser()"]
-        tree_parser["tree_parser()"]
+    subgraph "Document Processing Pipeline"
+        PDF[PDF Document]-->DocPrep[Document Preparation]
+        DocPrep-->DocParser[Document Parser]
+        DocParser-->FinDetect[Financial Document Detection]
+        FinDetect-->TOCExtract[Table of Contents Extraction]
+        TOCExtract-->StructureBuilder[Document Structure Builder]
+        StructureBuilder-->FinFeatures[Financial Features Processor]
     end
-    
-    subgraph TOC["Table of Contents Processing"]
-        direction TB
-        check_toc["check_toc()"]
-        toc_detector["toc_detector_single_page()"]
-        find_toc_pages["find_toc_pages()"]
-        toc_extractor["toc_extractor()"]
-        toc_transformer["toc_transformer()"]
-        process_toc_with_page_numbers["process_toc_with_page_numbers()"]
-        process_toc_no_page_numbers["process_toc_no_page_numbers()"]
-        process_no_toc["process_no_toc()"]
-        enhance_toc["enhance_toc_for_financial_document()"]
-    end
-    
-    subgraph Verification["Structure Verification"]
-        verify_toc["verify_toc()"]
-        check_title_appearance["check_title_appearance()"]
-        check_title_appearance_in_start["check_title_appearance_in_start()"]
-        fix_incorrect_toc["fix_incorrect_toc()"]
-    end
-    
-    subgraph Financial["Financial Feature Extraction"]
-        detect_financial_tables["detect_financial_tables()"]
-        extract_table_structure["extract_table_structure()"]
-        table_to_json["table_to_json()"]
-        identify_regulatory_section["identify_regulatory_section()"]
-        validate_regulatory_completeness["validate_regulatory_completeness()"]
-        extract_financial_terms["extract_financial_terms()"]
-        detect_footnote_references["detect_footnote_references()"]
-        extract_footnote_content["extract_footnote_content()"]
-        build_reference_graph["build_reference_graph()"]
-        process_financial_features["process_financial_features_for_structure()"]
-    end
-    
-    subgraph Utils["Utilities"]
-        ChatGPT_API["ChatGPT_API()"]
-        ChatGPT_API_async["ChatGPT_API_async()"]
-        extract_json["extract_json()"]
-        get_page_tokens["get_page_tokens()"]
-        post_processing["post_processing()"]
-        add_node_text["add_node_text()"]
-        generate_summaries["generate_summaries_for_structure()"]
-    end
-    
-    subgraph PDF["PDF Processing"]
-        PyPDF2["PyPDF2"]
-        PyMuPDF["PyMuPDF"]
-    end
-    
-    subgraph LLM["Language Models"]
-        GPT4["GPT-4"]
-    end
-    
-    %% Connections
-    Client --> Core
-    Core --> TOC
-    Core --> Financial
-    Core --> Verification
-    Core --> Utils
-    
-    TOC --> Verification
-    TOC --> Utils
-    Financial --> Utils
-    Verification --> Utils
-    
-    Utils --> LLM
-    Utils --> PDF
-    
-    %% Main flow
-    page_index_main --> check_if_financial_document
-    check_if_financial_document --> financial_document_parser
-    financial_document_parser --> tree_parser
-    financial_document_parser --> process_financial_features
-    tree_parser --> check_toc
-    check_toc --> toc_extractor
-    toc_extractor --> meta_processor
-    
-    meta_processor --> process_toc_with_page_numbers
-    meta_processor --> process_toc_no_page_numbers
-    meta_processor --> process_no_toc
-    
-    process_toc_with_page_numbers --> verify_toc
-    process_toc_no_page_numbers --> verify_toc
-    process_no_toc --> verify_toc
-    
-    verify_toc -- "errors detected" --> fix_incorrect_toc
-    
-    meta_processor -- "financial document" --> enhance_toc
-    
-    process_financial_features --> detect_financial_tables
-    process_financial_features --> identify_regulatory_section
-    process_financial_features --> extract_financial_terms
-    process_financial_features --> detect_footnote_references
-    
-    detect_financial_tables --> extract_table_structure
-    extract_table_structure --> table_to_json
-    detect_footnote_references --> extract_footnote_content
-    extract_footnote_content --> build_reference_graph
-    
-    classDef core fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef financial fill:#bbf,stroke:#333,stroke-width:1px;
-    classDef toc fill:#bfb,stroke:#333,stroke-width:1px;
-    classDef utils fill:#fbb,stroke:#333,stroke-width:1px;
-    
-    class Core core;
-    class Financial financial;
-    class TOC toc;
-    class Utils utils;
 
+    subgraph "Feature Extraction"
+        FinFeatures-->|Parallel Processing|Tables[Table Extraction]
+        FinFeatures-->|Parallel Processing|Footnotes[Footnote Processing]
+        FinFeatures-->|Parallel Processing|RegSections[Regulatory Section Identification]
+        FinFeatures-->|Parallel Processing|FinTerms[Financial Terms Extraction]
+    end
+
+    subgraph "Enrichment & Output"
+        Tables-->Enrichment[Document Enrichment]
+        Footnotes-->Enrichment
+        RegSections-->Enrichment
+        FinTerms-->Enrichment
+        Enrichment-->JsonOutput[JSON Output]
+        Enrichment-->Stats[Statistics Generation]
+    end
+
+    Args-->DocPrep
+    Stats-->CLI
 ```
+
+## Mid-Level Component Diagram
+
+```mermaid
+flowchart LR
+    subgraph "finance-index.py"
+        main-->ArgumentParser
+        ArgumentParser-->InputValidation
+        InputValidation-->PDFProcessor
+        PDFProcessor-->PageIndexCaller
+        PageIndexCaller-->ResultProcessor
+        ResultProcessor-->StatisticsGenerator
+        StatisticsGenerator-->OutputWriter
+    end
+
+    subgraph "page_index.py"
+        page_index_main-->PDFValidator
+        PDFValidator-->PageTokenizer
+        PageTokenizer-->FinancialDocumentParser
+        FinancialDocumentParser-->NodeEnrichment
+        NodeEnrichment-->ResultFormatter
+    end
+
+    subgraph "financial_features.py"
+        detect_financial_tables
+        extract_table_structure
+        table_to_json
+        identify_regulatory_section
+        validate_regulatory_completeness
+        detect_footnote_references
+        extract_footnote_content
+        build_reference_graph
+        enhance_toc_for_financial_document
+        extract_financial_terms
+        process_financial_features_for_structure
+    end
+
+    PageIndexCaller-->page_index_main
+    FinancialDocumentParser-->process_financial_features_for_structure
+    process_financial_features_for_structure-->detect_financial_tables
+    process_financial_features_for_structure-->extract_table_structure
+    process_financial_features_for_structure-->table_to_json
+    process_financial_features_for_structure-->identify_regulatory_section
+    process_financial_features_for_structure-->detect_footnote_references
+    process_financial_features_for_structure-->extract_footnote_content
+    process_financial_features_for_structure-->build_reference_graph
+    process_financial_features_for_structure-->extract_financial_terms
+    FinancialDocumentParser-->validate_regulatory_completeness
+    FinancialDocumentParser-->enhance_toc_for_financial_document
+```
+
+## Low-Level Detailed Flow Diagram (LLD)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI as finance-index.py
+    participant PageIndex as page_index.py
+    participant FinFeatures as financial_features.py
+    participant Utils as utils.py
+    participant LLM as OpenAI API
+
+    User->>CLI: Run with PDF path & options
+    CLI->>CLI: Parse arguments
+    CLI->>CLI: Validate input file
+    CLI->>CLI: Prepare document (slice if needed)
+    
+    CLI->>PageIndex: Call page_index()
+    PageIndex->>PageIndex: Validate PDF
+    PageIndex->>Utils: get_page_tokens()
+    Utils-->>PageIndex: Return tokenized pages
+    
+    PageIndex->>PageIndex: financial_document_parser()
+    PageIndex->>LLM: check_if_financial_document()
+    LLM-->>PageIndex: Return document classification
+    
+    PageIndex->>PageIndex: check_toc()
+    PageIndex->>LLM: toc_detector_single_page()
+    LLM-->>PageIndex: Return TOC detection
+    
+    alt TOC Found
+        PageIndex->>FinFeatures: enhance_toc_for_financial_document()
+        FinFeatures->>LLM: Process TOC with financial context
+        LLM-->>FinFeatures: Return enhanced TOC
+        FinFeatures-->>PageIndex: Return enhanced TOC
+        
+        alt Page Numbers in TOC
+            PageIndex->>PageIndex: meta_processor(mode='process_toc_with_page_numbers')
+        else No Page Numbers
+            PageIndex->>PageIndex: meta_processor(mode='process_toc_no_page_numbers')
+        end
+    else No TOC
+        PageIndex->>PageIndex: meta_processor(mode='process_no_toc')
+    end
+    
+    PageIndex->>PageIndex: add_preface_if_needed()
+    PageIndex->>PageIndex: check_title_appearance_in_start_concurrent()
+    PageIndex->>PageIndex: post_processing()
+    
+    PageIndex->>FinFeatures: process_financial_features_for_structure()
+    
+    par Financial Feature Extraction
+        FinFeatures->>LLM: identify_regulatory_section()
+        LLM-->>FinFeatures: Return regulatory info
+        
+        FinFeatures->>LLM: detect_financial_tables()
+        LLM-->>FinFeatures: Return tables info
+        
+        FinFeatures->>LLM: extract_table_structure()
+        LLM-->>FinFeatures: Return structured tables
+        
+        FinFeatures->>LLM: detect_footnote_references()
+        LLM-->>FinFeatures: Return footnote references
+        
+        FinFeatures->>LLM: extract_footnote_content()
+        LLM-->>FinFeatures: Return footnote content
+        
+        FinFeatures->>LLM: build_reference_graph()
+        LLM-->>FinFeatures: Return reference graph
+        
+        FinFeatures->>LLM: extract_financial_terms()
+        LLM-->>FinFeatures: Return financial terms
+    end
+    
+    FinFeatures->>LLM: validate_regulatory_completeness()
+    LLM-->>FinFeatures: Return completeness validation
+    FinFeatures-->>PageIndex: Return enhanced structure
+    
+    opt Node Enrichment
+        PageIndex->>PageIndex: write_node_id()
+        PageIndex->>PageIndex: add_node_text()
+        PageIndex->>LLM: generate_summaries_for_structure()
+        LLM-->>PageIndex: Return summaries
+        PageIndex->>PageIndex: add_node_text_with_labels()
+    end
+    
+    opt Document Description
+        PageIndex->>LLM: generate_doc_description()
+        LLM-->>PageIndex: Return document description
+    end
+    
+    PageIndex-->>CLI: Return processed structure
+    
+    CLI->>CLI: count_sections()
+    CLI->>CLI: get_financial_stats()
+    CLI->>CLI: Write JSON output
+    CLI->>User: Display statistics
+```
+
+## Data Flow Diagram
+
+```mermaid
+flowchart TD
+    PDF[PDF Document] --> Tokenizer[Document Tokenizer]
+    Tokenizer --> Pages[Page List with Tokens]
+    
+    Pages --> FinDetector[Financial Document Detector]
+    FinDetector --> DocType[Document Type & Confidence]
+    
+    Pages --> TOCDetector[TOC Detector]
+    TOCDetector --> TOCContent[TOC Content]
+    
+    TOCContent --> TOCProcessor[TOC Processor]
+    TOCProcessor --> Structure[Document Structure]
+    
+    Structure --> FeatureProcessor[Financial Feature Processor]
+    Pages --> FeatureProcessor
+    
+    FeatureProcessor --> Tables[Financial Tables]
+    FeatureProcessor --> Footnotes[Footnotes & References]
+    FeatureProcessor --> RegSections[Regulatory Sections]
+    FeatureProcessor --> FinTerms[Financial Terms]
+    
+    Tables --> EnhancedStructure[Enhanced Document Structure]
+    Footnotes --> EnhancedStructure
+    RegSections --> EnhancedStructure
+    FinTerms --> EnhancedStructure
+    
+    EnhancedStructure --> Summaries[Section Summaries]
+    EnhancedStructure --> DocDescription[Document Description]
+    
+    EnhancedStructure --> OutputJSON[JSON Output]
+    EnhancedStructure --> Statistics[Document Statistics]
+    
+    class PDF,OutputJSON,Statistics storage;
+    class Pages,Structure,EnhancedStructure dataStructure;
+    class FinDetector,TOCDetector,TOCProcessor,FeatureProcessor process;
+    
+    classDef storage fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef dataStructure fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef process fill:#bfb,stroke:#333,stroke-width:2px;
+```
+
+## Component Interaction Matrix
+
+```mermaid
+journey
+    title Financial Document Processing Pipeline
+    section Input Processing
+        Parse Arguments: 5: CLI
+        Validate PDF: 5: CLI, PageIndex
+        Tokenize Pages: 5: PageIndex, Utils
+    section Document Analysis
+        Detect Financial Document: 5: PageIndex, LLM
+        Extract TOC: 5: PageIndex, LLM
+        Build Structure: 5: PageIndex, LLM
+    section Financial Feature Extraction
+        Process Financial Features: 5: FinFeatures, LLM
+        Extract Tables: 5: FinFeatures, LLM
+        Process Footnotes: 5: FinFeatures, LLM
+        Identify Regulatory Sections: 5: FinFeatures, LLM
+        Extract Financial Terms: 5: FinFeatures, LLM
+    section Enrichment & Output
+        Add Node IDs: 3: PageIndex
+        Generate Summaries: 4: PageIndex, LLM
+        Generate Document Description: 4: PageIndex, LLM
+        Calculate Statistics: 3: CLI
+        Output JSON: 5: CLI
+```
+
+## System Architecture Layers
+
+```mermaid
+layerDiagram
+    default: down
+    title: Financial Document Processing System Architecture
+    
+    layer User Interface {
+        layer Command Line {
+            CLI
+            ArgumentParser
+        }
+    }
+    
+    layer Application Logic {
+        layer Document Processing {
+            PDFProcessor
+            DocumentParser
+            StructureBuilder
+        }
+        
+        layer Financial Analysis {
+            FinancialDetector
+            TOCProcessor
+            FeatureExtractor
+        }
+        
+        layer Enrichment {
+            NodeEnricher
+            SummaryGenerator
+            StatisticsCalculator
+        }
+    }
+    
+    layer Services {
+        layer LLM Integration {
+            OpenAIClient
+            PromptTemplates
+            ResponseParser
+        }
+        
+        layer Utilities {
+            TokenCounter
+            JSONFormatter
+            Logger
+        }
+    }
+    
+    layer Data {
+        layer Storage {
+            PDFReader
+            JSONWriter
+        }
+        
+        layer Models {
+            DocumentStructure
+            FinancialFeatures
+            Metadata
+        }
+    }
+    
+    User Interface.Command Line -> Application Logic.Document Processing
+    Application Logic.Document Processing -> Application Logic.Financial Analysis
+    Application Logic.Financial Analysis -> Application Logic.Enrichment
+    Application Logic.Document Processing -> Services.LLM Integration
+    Application Logic.Financial Analysis -> Services.LLM Integration
+    Application Logic.Enrichment -> Services.LLM Integration
+    Application Logic.Document Processing -> Services.Utilities
+    Application Logic -> Data.Models
+    Data.Storage -> Data.Models
+    User Interface.Command Line -> Data.Storage
+```
+
+## Key Components and Responsibilities
+
+### 1. finance-index.py
+- Command-line interface for the system
+- Argument parsing and validation
+- PDF document preparation
+- Orchestration of the processing pipeline
+- Statistics generation and output formatting
+
+### 2. page_index.py
+- Core document processing engine
+- PDF validation and tokenization
+- Financial document detection
+- Table of contents extraction and processing
+- Document structure building
+- Node enrichment and metadata addition
+
+### 3. financial_features.py
+- Specialized financial feature extraction
+- Financial table detection and structuring
+- Regulatory section identification
+- Footnote processing and reference linking
+- Financial term extraction
+- Regulatory completeness validation
+
+### 4. utils.py
+- Utility functions for the system
+- PDF tokenization
+- LLM API integration
+- JSON processing
+- Text processing utilities
+
+## Processing Stages
+
+1. **Input Processing**: Parse arguments, validate input file, prepare document
+2. **Document Parsing**: Tokenize PDF into pages with token counts
+3. **Financial Detection**: Determine if document is a financial SEC filing
+4. **TOC Processing**: Extract and enhance table of contents
+5. **Structure Building**: Create hierarchical document structure
+6. **Financial Feature Extraction**: Process tables, footnotes, regulatory sections, and terms
+7. **Enrichment**: Add IDs, summaries, and descriptions
+8. **Output Generation**: Create JSON output and statistics
+
+## Data Flow
+
+The system processes data through these transformations:
+
+1. PDF Document → Page List with Tokens
+2. Page List → Document Type Classification
+3. Page List → TOC Content
+4. TOC Content → Document Structure
+5. Document Structure + Page List → Enhanced Structure with Financial Features
+6. Enhanced Structure → Final Output (JSON + Statistics)
 
 ## Installation
 
@@ -155,26 +415,7 @@ cp .env.example .env
 # Edit .env with your OpenAI API key
 ```
 
-## Usage
 
-### Basic Usage
-
-```python
-from finance_pageindex import page_index
-
-# Process a PDF document
-result = page_index("path/to/document.pdf")
-
-# Access the document structure
-structure = result['structure']
-
-# Print document sections
-for section in structure:
-    print(f"Section: {section['title']}")
-    if 'summary' in section:
-        print(f"Summary: {section['summary']}")
-    print()
-```
 
 ### Advanced Configuration
 
