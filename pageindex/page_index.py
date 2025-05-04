@@ -1072,7 +1072,7 @@ async def tree_parser(page_list, opt, doc=None, logger=None):
     return toc_tree
 
 
-def page_index_main(doc, opt=None):
+def page_index_main(doc, opt=None, checkpoint_path=None, resume=False):
     """
     Unified entry point for document structure extraction with specialized
     financial document processing.
@@ -1093,54 +1093,185 @@ def page_index_main(doc, opt=None):
     Args:
         doc: PDF document (path or BytesIO)
         opt: Processing options
+        checkpoint_path: Path to save/load checkpoints (default: auto-generated)
+        resume: Whether to resume from checkpoint if available
         
     Returns:
         Dictionary containing document structure and metadata
     """
+    import os
+    import json
+    import pickle
+    from datetime import datetime
+    from pathlib import Path
+    
+    # Create logger
     logger = JsonLogger(doc)
     
-    # Validate input
-    is_valid_pdf = (
-        (isinstance(doc, str) and os.path.isfile(doc) and doc.lower().endswith(".pdf")) or 
-        isinstance(doc, BytesIO)
-    )
-    if not is_valid_pdf:
-        raise ValueError("Unsupported input type. Expected a PDF file path or BytesIO object.")
+    # Generate checkpoint path if not provided
+    if checkpoint_path is None:
+        if isinstance(doc, str):
+            doc_name = os.path.basename(doc).replace('.pdf', '')
+        else:
+            doc_name = 'document'
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        checkpoint_dir = Path("./checkpoints")
+        checkpoint_dir.mkdir(exist_ok=True)
+        checkpoint_path = checkpoint_dir / f"{doc_name}_checkpoint_{timestamp}.pkl"
+    else:
+        checkpoint_path = Path(checkpoint_path)
+    
+    # Function to save checkpoint
+    def save_checkpoint(stage, data):
+        try:
+            checkpoint = {
+                'stage': stage,
+                'data': data,
+                'timestamp': datetime.now().isoformat()
+            }
+            with open(checkpoint_path, 'wb') as f:
+                pickle.dump(checkpoint, f)
+            logger.info(f"Checkpoint saved: {stage}")
+            print(f"Checkpoint saved: {stage}")
+        except Exception as e:
+            logger.error(f"Failed to save checkpoint: {str(e)}")
+            print(f"Warning: Failed to save checkpoint: {str(e)}")
+    
+    # Function to load checkpoint
+    def load_checkpoint():
+        try:
+            if checkpoint_path.exists():
+                with open(checkpoint_path, 'rb') as f:
+                    checkpoint = pickle.load(f)
+                logger.info(f"Loaded checkpoint: {checkpoint['stage']}")
+                print(f"Resuming from checkpoint: {checkpoint['stage']}")
+                return checkpoint
+            else:
+                logger.info("No checkpoint found")
+                print("No checkpoint found, starting from beginning")
+                return None
+        except Exception as e:
+            logger.error(f"Failed to load checkpoint: {str(e)}")
+            print(f"Warning: Failed to load checkpoint: {str(e)}")
+            return None
+    
+    # Initialize or load from checkpoint
+    current_stage = 'init'
+    checkpoint = None
+    if resume:
+        checkpoint = load_checkpoint()
+        if checkpoint:
+            current_stage = checkpoint['stage']
+    
+    # Validate input if starting from beginning
+    if current_stage == 'init':
+        is_valid_pdf = (
+            (isinstance(doc, str) and os.path.isfile(doc) and doc.lower().endswith(".pdf")) or 
+            isinstance(doc, BytesIO)
+        )
+        if not is_valid_pdf:
+            raise ValueError("Unsupported input type. Expected a PDF file path or BytesIO object.")
 
-    logger.info("Starting unified financial document processing pipeline")
+        logger.info("Starting unified financial document processing pipeline")
     
     # Step 1: Parse document into pages and tokens
-    print('Parsing PDF document...')
-    page_list = get_page_tokens(doc)
-
-    # Log document statistics
-    total_pages = len(page_list)
-    total_tokens = sum([page[1] for page in page_list])
-    logger.info({'total_page_number': total_pages, 'total_token': total_tokens})
+    page_list = None
+    if current_stage in ['init']:
+        try:
+            print('Parsing PDF document...')
+            page_list = get_page_tokens(doc)
+            
+            # Log document statistics
+            total_pages = len(page_list)
+            total_tokens = sum([page[1] for page in page_list])
+            logger.info({'total_page_number': total_pages, 'total_token': total_tokens})
+            
+            # Save checkpoint after parsing
+            save_checkpoint('parsed', {'page_list': page_list})
+            current_stage = 'parsed'
+        except Exception as e:
+            logger.error(f"Error during document parsing: {str(e)}")
+            raise
+    elif checkpoint and 'page_list' in checkpoint['data']:
+        page_list = checkpoint['data']['page_list']
+        print(f'Loaded {len(page_list)} pages from checkpoint')
     
     # Step 2: Process document through unified financial document parser
-    # This pipeline specializes in SEC 10-K documents but works for all document types
-    print(f'Processing document with specialized financial features ({total_pages} pages)...')
-    structure = asyncio.run(financial_document_parser(page_list, opt, doc=doc, logger=logger))
+    structure = None
+    if current_stage in ['init', 'parsed']:
+        try:
+            # This pipeline specializes in SEC 10-K documents but works for all document types
+            print(f'Processing document with specialized financial features ({len(page_list)} pages)...')
+            structure = asyncio.run(financial_document_parser(page_list, opt, doc=doc, logger=logger))
+            
+            # Save checkpoint after structure extraction
+            save_checkpoint('structured', {'page_list': page_list, 'structure': structure})
+            current_stage = 'structured'
+        except Exception as e:
+            logger.error(f"Error during document structure extraction: {str(e)}")
+            if current_stage == 'parsed':
+                # Return partial result with just the page list
+                return {
+                    'doc_name': get_pdf_name(doc),
+                    'is_financial_document': False,
+                    'document_type': 'Unknown',
+                    'structure': [],
+                    'error': str(e),
+                    'stage': current_stage,
+                    'page_list': page_list
+                }
+            raise
+    elif checkpoint and 'structure' in checkpoint['data']:
+        structure = checkpoint['data']['structure']
+        page_list = checkpoint['data']['page_list']
+        print(f'Loaded document structure from checkpoint')
     
     # Step 3: Apply requested document enrichments
     
     # Add node IDs if requested
-    if getattr(opt, 'if_add_node_id', 'yes') == 'yes':
-        print('Adding node IDs to structure...')
-        write_node_id(structure)    
+    if current_stage in ['init', 'parsed', 'structured'] and getattr(opt, 'if_add_node_id', 'yes') == 'yes':
+        try:
+            print('Adding node IDs to structure...')
+            write_node_id(structure)
+            
+            # Save checkpoint after adding node IDs
+            save_checkpoint('node_ids_added', {'page_list': page_list, 'structure': structure})
+            current_stage = 'node_ids_added'
+        except Exception as e:
+            logger.error(f"Error adding node IDs: {str(e)}")
+            # Continue with the process, this is not critical
+            print(f"Warning: Failed to add node IDs: {str(e)}")
     
     # Add summaries if requested
-    if getattr(opt, 'if_add_node_summary', 'yes') == 'yes':
-        print('Generating summaries for document sections...')
-        add_node_text(structure, page_list)
-        asyncio.run(generate_summaries_for_structure(structure, model=opt.model))
-        remove_structure_text(structure)
-        
-        # Add node text with labels if requested
-        if getattr(opt, 'if_add_node_text', 'yes') == 'yes':
-            print('Adding labeled text to document sections...')
-            add_node_text_with_labels(structure, page_list)
+    if current_stage in ['init', 'parsed', 'structured', 'node_ids_added'] and getattr(opt, 'if_add_node_summary', 'yes') == 'yes':
+        try:
+            print('Generating summaries for document sections...')
+            add_node_text(structure, page_list)
+            
+            # Save checkpoint after adding text
+            save_checkpoint('text_added', {'page_list': page_list, 'structure': structure})
+            current_stage = 'text_added'
+            
+            # Generate summaries
+            asyncio.run(generate_summaries_for_structure(structure, model=opt.model))
+            remove_structure_text(structure)
+            
+            # Save checkpoint after adding summaries
+            save_checkpoint('summaries_added', {'page_list': page_list, 'structure': structure})
+            current_stage = 'summaries_added'
+            
+            # Add node text with labels if requested
+            if getattr(opt, 'if_add_node_text', 'yes') == 'yes':
+                print('Adding labeled text to document sections...')
+                add_node_text_with_labels(structure, page_list)
+                
+                # Save checkpoint after adding labeled text
+                save_checkpoint('labeled_text_added', {'page_list': page_list, 'structure': structure})
+                current_stage = 'labeled_text_added'
+        except Exception as e:
+            logger.error(f"Error during summary generation: {str(e)}")
+            # Continue with the process, this is not critical
+            print(f"Warning: Failed to generate summaries: {str(e)}")
     
     # Step 4: Create and return final document structure
     
@@ -1159,33 +1290,47 @@ def page_index_main(doc, opt=None):
             financial_indicators = metadata.get('financial_indicators', [])
             is_financial_document = bool(document_type != 'Unknown' and document_type != 'Non-SEC Document')
     
-    # Add document description if requested
+    # Create result object
     result = {
         'doc_name': get_pdf_name(doc),
         'is_financial_document': is_financial_document,
         'document_type': document_type,
         'structure': structure,
+        'processing_stage': current_stage,
+        'checkpoint_path': str(checkpoint_path)
     }
     
+    # Add document description if requested
     if getattr(opt, 'if_add_doc_description', 'yes') == 'yes':
-        print('Generating document description...')
-        doc_description = generate_doc_description(structure, model=opt.model)
-        result['doc_description'] = doc_description
-        
-    logger.info("Document processing complete")
+        try:
+            print('Generating document description...')
+            doc_description = generate_doc_description(structure, model=opt.model)
+            result['doc_description'] = doc_description
+            
+            # Save final checkpoint
+            save_checkpoint('completed', {'page_list': page_list, 'structure': structure, 'result': result})
+            current_stage = 'completed'
+        except Exception as e:
+            logger.error(f"Error generating document description: {str(e)}")
+            # Continue with the process, this is not critical
+            print(f"Warning: Failed to generate document description: {str(e)}")
+    
+    logger.info(f"Document processing complete at stage: {current_stage}")
+    result['processing_stage'] = current_stage
     return result
 
 
 def page_index(doc, model=None, toc_check_page_num=None, max_page_num_each_node=None, max_token_num_each_node=None,
                if_add_node_id=None, if_add_node_summary=None, if_add_doc_description=None, if_add_node_text=None,
-               process_financial_features=None, extract_tables=None, extract_footnotes=None):
+               process_financial_features=None, extract_tables=None, extract_footnotes=None,
+               checkpoint_path=None, resume=False):
     
     user_opt = {
         arg: value for arg, value in locals().items()
-        if arg != "doc" and value is not None
+        if arg != "doc" and arg != "checkpoint_path" and arg != "resume" and value is not None
     }
     opt = ConfigLoader().load(user_opt)
-    return page_index_main(doc, opt)
+    return page_index_main(doc, opt, checkpoint_path=checkpoint_path, resume=resume)
 
 
 ################### Financial Document Processing #########################################################
